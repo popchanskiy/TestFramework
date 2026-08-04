@@ -11,13 +11,21 @@ TEST_GROUPS_OVERRIDE="${TEST_GROUPS-__UNSET__}"
 EXCLUDED_GROUPS_OVERRIDE="${EXCLUDED_GROUPS-__UNSET__}"
 MAVEN_ARGS_OVERRIDE="${MAVEN_ARGS-__UNSET__}"
 
+case "${ENV_FILE}" in
+  /*)
+    ;;
+  *)
+    if [ -f "${ENV_FILE}" ]; then
+      ENV_FILE="$(pwd)/${ENV_FILE}"
+    elif [ -f "${SCRIPT_DIR}/${ENV_FILE}" ]; then
+      ENV_FILE="${SCRIPT_DIR}/${ENV_FILE}"
+    fi
+    ;;
+esac
+
 if [ ! -f "${ENV_FILE}" ]; then
-  if [ -f "${SCRIPT_DIR}/${ENV_FILE}" ]; then
-    ENV_FILE="${SCRIPT_DIR}/${ENV_FILE}"
-  else
-    echo "Env file not found: ${ENV_FILE}" >&2
-    exit 1
-  fi
+  echo "Env file not found: ${ENV_FILE}" >&2
+  exit 1
 fi
 
 set -a
