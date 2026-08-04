@@ -13,9 +13,8 @@ public class BrowserExtension implements BeforeEachCallback {
         BrowserType browserType = resolveBrowser(context);
         Configuration.remote = AppConfig.get("remote");
         switch (browserType) {
-            case CHROME -> Configuration.browser = "chrome";
+            case CHROME, CHROMIUM -> Configuration.browser = "chrome";
             case FIREFOX -> Configuration.browser = "firefox";
-            case CHROMIUM -> Configuration.browser = "chromium";
             default -> throw new IllegalArgumentException("Unsupported browser: " + browserType);
         }
         Configuration.baseUrl = AppConfig.get("baseUrl");

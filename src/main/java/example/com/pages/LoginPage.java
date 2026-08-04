@@ -9,7 +9,7 @@ public class LoginPage extends BasePage<LoginPage> {
 
     @Override
     public String getUrl() {
-        return "/login";
+        return "/";
     }
 
     public LoginPage login(String username, String password) {

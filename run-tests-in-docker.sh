@@ -69,8 +69,8 @@ set -- \
   -e "DB_PASSWORD=${DB_PASSWORD:-postgres}" \
   -e "MOCK_REMOTE=${MOCK_REMOTE:-http://wiremock:8080}" \
   -e "REMOTE=${REMOTE:-http://selenium-hub:4444/wd/hub}" \
-  -e "BASE_URL=${BASE_URL:-http://192.168.100.3:3000}" \
-  -e "BROWSER=${BROWSER:-chromium}" \
+  -e "BASE_URL=${BASE_URL:-http://nginx}" \
+  -e "BROWSER=${BROWSER:-chrome}" \
   -e "BROWSER_SIZE=${BROWSER_SIZE:-1920x1080}"
 
 if [ -n "${TEST_GROUPS:-}" ]; then

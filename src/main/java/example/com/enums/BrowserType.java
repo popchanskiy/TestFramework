@@ -3,7 +3,7 @@ package example.com.enums;
 public enum BrowserType {
     CHROME("chrome"),
     FIREFOX("firefox"),
-    CHROMIUM("chromium");
+    CHROMIUM("chrome");
 
     private final String browserName;
 
