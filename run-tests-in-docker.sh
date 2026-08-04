@@ -61,7 +61,11 @@ NETWORK_NAME="${NETWORK_NAME:-nbank-network}"
 DB_URL="${DB_URL:-jdbc:postgresql://postgres:5432/${DB_NAME:-nbank}}"
 
 mkdir -p target
-find target -mindepth 1 -maxdepth 1 -exec rm -rf {} +
+docker run --rm \
+  -v "$(pwd)/target:/target" \
+  --entrypoint sh \
+  "${IMAGE_NAME}" \
+  -c 'find /target -mindepth 1 -maxdepth 1 -exec rm -rf {} +'
 
 set -- \
   --rm \
