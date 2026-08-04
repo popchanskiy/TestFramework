@@ -1,0 +1,119 @@
+services:
+  backend:
+    image: ${BACKEND_IMAGE:-nobugsme/nbank:with_fraud_check}
+    ports:
+      - "${APP_LOCAL_PORT:-4111}:4111"
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/${DB_NAME:-nbank}
+      - SPRING_DATASOURCE_USERNAME=${DB_USERNAME:-postgres}
+      - SPRING_DATASOURCE_PASSWORD=${DB_PASSWORD:-postgres}
+      - SPRING_DATASOURCE_DRIVER_CLASS_NAME=org.postgresql.Driver
+      - FRAUD_DETECTION_SERVICE_URL=${MOCK_REMOTE:-http://wiremock:8080}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      wiremock:
+        condition: service_healthy
+    networks:
+      - nbank-network
+    healthcheck:
+      test: [ "CMD-SHELL", "curl -fsS http://localhost:4111/actuator/health > /dev/null || exit 1" ]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
+
+  frontend:
+    image: ${FRONTEND_IMAGE:-nobugsme/nbank-ui:latest}
+    expose:
+      - "${FRONTEND_INTERNAL_PORT:-80}"
+    depends_on:
+      - backend
+    networks:
+      - nbank-network
+
+  nginx:
+    image: ${NGINX_IMAGE:-nginx:latest}
+    ports:
+      - "${NGINX_LOCAL_PORT:-80}:80"
+    volumes:
+      - ./config/nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - backend
+      - frontend
+    networks:
+      - nbank-network
+
+  postgres:
+    image: ${POSTGRES_IMAGE:-postgres:15-alpine}
+    ports:
+      - "${POSTGRES_LOCAL_PORT:-5433}:5432"
+    environment:
+      - POSTGRES_DB=${DB_NAME:-nbank}
+      - POSTGRES_USER=${DB_USERNAME:-postgres}
+      - POSTGRES_PASSWORD=${DB_PASSWORD:-postgres}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init-scripts:/docker-entrypoint-initdb.d:ro
+    networks:
+      - nbank-network
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U postgres -d nbank" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  selenium-hub:
+    image: ${SELENIUM_HUB_IMAGE:-selenium/hub:4.45.0-20260606}
+    container_name: selenium-hub
+    ports:
+      - "${SELENIUM_PUBLISH_PORT_4442:-4442}:4442"
+      - "${SELENIUM_PUBLISH_PORT_4443:-4443}:4443"
+      - "${SELENIUM_PUBLISH_PORT_4444:-4444}:4444"
+    networks:
+      - nbank-network
+    healthcheck:
+      test: [ "CMD-SHELL", "/opt/bin/check-grid.sh --host 0.0.0.0 --port 4444" ]
+      interval: 15s
+      timeout: 30s
+      retries: 5
+      start_period: 20s
+
+  chromium:
+    image: ${SELENIUM_CHROMIUM_IMAGE:-selenium/node-chromium:4.45.0-20260606}
+    shm_size: 2gb
+    depends_on:
+      - selenium-hub
+    environment:
+      - SE_EVENT_BUS_HOST=selenium-hub
+    ports:
+      - "${CHROMIUM_VNC_PORT:-7900}:7900"
+    networks:
+      - nbank-network
+
+  firefox:
+    image: ${SELENIUM_FIREFOX_IMAGE:-selenium/node-firefox:4.45.0-20260606}
+    shm_size: 2gb
+    depends_on:
+      - selenium-hub
+    environment:
+      - SE_EVENT_BUS_HOST=selenium-hub
+    ports:
+      - "${FIREFOX_VNC_PORT:-7901}:7900"
+    networks:
+      - nbank-network
+
+  wiremock:
+    image: ${WIREMOCK_IMAGE:-wiremock/wiremock:3.9.1}
+    ports:
+      - "${WIREMOCK_LOCAL_PORT:-8080}:8080"
+    networks:
+      - nbank-network
+
+networks:
+  nbank-network:
+    name: ${NETWORK_NAME:-nbank-network}
+
+volumes:
+  postgres_data:
+    driver: local

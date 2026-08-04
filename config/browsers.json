@@ -1,0 +1,13 @@
+{
+  "chrome": {
+    "default": "126.0",
+    "versions": {
+      "126.0": {
+        "image": "selenoid/vnc_chrome:126.0",
+        "port": "4444",
+        "path": "/",
+        "shmSize": 268435456
+      }
+    }
+  }
+}

@@ -2,14 +2,9 @@ package example.com.utills;
 
 import com.github.curiousoddman.rgxgen.RgxGen;
 import example.com.annotations.GenerateRule;
-import org.apache.commons.lang3.RandomStringUtils;
-import org.apache.commons.lang3.StringUtils;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
-import java.util.Random;
-
-import static org.apache.commons.lang3.RandomUtils.nextInt;
 
 public class DataGenerator {
     public static <T> T generate(Class<T> clazz) {

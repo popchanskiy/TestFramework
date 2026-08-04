@@ -1,0 +1,110 @@
+name: main-and-manual
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+    inputs:
+      suite:
+        description: Suite to run
+        required: true
+        default: ALL
+        type: choice
+        options:
+          - ALL
+          - REGRESSION
+          - UI
+          - API
+          - DB
+          - INTEGRATION
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  main_full:
+    runs-on: ubuntu-latest
+    timeout-minutes: 75
+    env:
+      ENV_FILE: .env.docker
+      IMAGE_NAME: local/testframework-runner:${{ github.sha }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build test runner image
+        run: docker build -t "${IMAGE_NAME}" .
+
+      - name: Run Checkstyle
+        run: docker run --rm "${IMAGE_NAME}" mvn -B checkstyle:check
+
+      - name: Start infrastructure
+        run: sh run-infra.sh up
+
+      - name: Run selected manual suite
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.suite != 'ALL' }}
+        env:
+          TEST_GROUPS: ${{ inputs.suite }}
+        run: sh run-tests-in-docker.sh
+
+      - name: Run INTEGRATION suite
+        if: ${{ github.event_name != 'workflow_dispatch' || inputs.suite == 'ALL' }}
+        env:
+          TEST_GROUPS: INTEGRATION
+        run: |
+          sh run-tests-in-docker.sh
+          mkdir -p ci-artifacts/integration
+          cp -R target/surefire-reports ci-artifacts/integration/ || true
+          cp -R target/reports ci-artifacts/integration/ || true
+
+      - name: Run API suite
+        if: ${{ github.event_name != 'workflow_dispatch' || inputs.suite == 'ALL' }}
+        env:
+          TEST_GROUPS: API
+        run: |
+          sh run-tests-in-docker.sh
+          mkdir -p ci-artifacts/api
+          cp -R target/surefire-reports ci-artifacts/api/ || true
+          cp -R target/reports ci-artifacts/api/ || true
+
+      - name: Run DB suite
+        if: ${{ github.event_name != 'workflow_dispatch' || inputs.suite == 'ALL' }}
+        env:
+          TEST_GROUPS: DB
+        run: |
+          sh run-tests-in-docker.sh
+          mkdir -p ci-artifacts/db
+          cp -R target/surefire-reports ci-artifacts/db/ || true
+          cp -R target/reports ci-artifacts/db/ || true
+
+      - name: Run UI suite
+        if: ${{ github.event_name != 'workflow_dispatch' || inputs.suite == 'ALL' }}
+        env:
+          TEST_GROUPS: UI
+        run: |
+          sh run-tests-in-docker.sh
+          mkdir -p ci-artifacts/ui
+          cp -R target/surefire-reports ci-artifacts/ui/ || true
+          cp -R target/reports ci-artifacts/ui/ || true
+
+      - name: Upload main/manual artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: main-and-manual-artifacts
+          path: |
+            ci-artifacts/**
+            target/surefire-reports/**
+            target/reports/**
+          if-no-files-found: warn
+
+      - name: Print infrastructure logs on failure
+        if: failure()
+        run: docker compose --env-file "${ENV_FILE}" logs --no-color
+
+      - name: Stop infrastructure
+        if: always()
+        run: sh run-infra.sh down

@@ -5,38 +5,30 @@ import java.io.InputStream;
 import java.util.Properties;
 
 public class ConfigLoader {
-    private static ConfigLoader INSTANCE;
-    private static final Properties properties = new Properties();
+    private static final Properties properties = loadProps();
+    private static final String PROP_FILE = "config.properties";
 
+    private ConfigLoader(){
 
-    private ConfigLoader() {
+    }
+    private static Properties loadProps() {
+        Properties properties = new Properties();
         try (InputStream input = ConfigLoader.class
                 .getClassLoader()
-                .getResourceAsStream("config.properties")) {
+                .getResourceAsStream(PROP_FILE)) {
 
             if (input == null) {
                 throw new RuntimeException("config.properties not found");
             }
             properties.load(input);
+           return properties;
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
     }
 
-    public static ConfigLoader getInstance() {
-        if (INSTANCE == null) {
-            INSTANCE = new ConfigLoader();
-        }
-        return INSTANCE;
+    public static Properties getProperties() {
+        return properties;
     }
-
-    public static String get(String key) {
-        return properties.getProperty(key);
-    }
-
-    public static int getInt(String key) {
-        return Integer.parseInt(properties.getProperty(key));
-    }
-
 
 }

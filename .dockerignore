@@ -1,0 +1,9 @@
+.git
+.idea
+.mvn
+.m2-temp
+build
+target
+TestFramework.iml
+.DS_Store
+docker-compose-old.yml
