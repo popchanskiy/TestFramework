@@ -1,0 +1,40 @@
+name: validate-branch-update
+
+on:
+  push:
+    branches-ignore:
+      - main
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref_name }}
+  cancel-in-progress: true
+
+jobs:
+  checkstyle:
+    name: Checkstyle
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    container:
+      image: maven:3.9.11-eclipse-temurin-17
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Run Checkstyle
+        run: mvn -B checkstyle:check
+
+  suites:
+    name: ${{ matrix.suite }}
+    strategy:
+      fail-fast: false
+      matrix:
+        suite:
+          - INTEGRATION
+          - API
+          - DB
+          - UI
+    uses: ./.github/workflows/common-setup.yml
+    with:
+      suite: ${{ matrix.suite }}
+      artifact_name: branch-${{ matrix.suite }}-artifacts

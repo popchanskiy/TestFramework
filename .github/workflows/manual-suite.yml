@@ -1,0 +1,23 @@
+name: manual-suite
+
+on:
+  workflow_dispatch:
+    inputs:
+      suite:
+        description: Suite to run manually
+        required: true
+        default: REGRESSION
+        type: choice
+        options:
+          - REGRESSION
+          - INTEGRATION
+          - API
+          - DB
+          - UI
+
+jobs:
+  smoke:
+    uses: ./.github/workflows/common-setup.yml
+    with:
+      suite: ${{ inputs.suite }}
+      artifact_name: manual-${{ inputs.suite }}-artifacts

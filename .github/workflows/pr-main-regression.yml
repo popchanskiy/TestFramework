@@ -1,0 +1,17 @@
+name: pr-main-regression
+
+on:
+  pull_request:
+    branches:
+      - main
+
+concurrency:
+  group: ${{ github.workflow }}-pr-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  regression:
+    uses: ./.github/workflows/common-setup.yml
+    with:
+      suite: REGRESSION
+      artifact_name: pr-regression-artifacts

@@ -1,0 +1,59 @@
+name: common-setup
+
+on:
+  workflow_call:
+    inputs:
+      suite:
+        description: Test suite tag to run
+        required: true
+        type: string
+      artifact_name:
+        description: Uploaded artifact bundle name
+        required: true
+        type: string
+
+jobs:
+  smoke:
+    name: Run ${{ inputs.suite }} suite
+    runs-on: ubuntu-latest
+    timeout-minutes: 50
+    env:
+      ENV_FILE: .env.docker
+      IMAGE_NAME: testframework-runner:${{ github.sha }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build runner image
+        run: docker build -t "${IMAGE_NAME}" .
+
+      - name: Start infrastructure
+        run: sh run-infra.sh up
+
+      - name: Run suite
+        env:
+          TEST_GROUPS: ${{ inputs.suite }}
+        run: sh run-tests-in-docker.sh
+
+      - name: Save docker logs
+        if: always()
+        run: |
+          mkdir -p "ci-artifacts/${{ inputs.suite }}"
+          docker compose --env-file "${ENV_FILE}" logs --no-color > "ci-artifacts/${{ inputs.suite }}/docker-compose.log" || true
+
+      - name: Upload artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ inputs.artifact_name }}
+          path: |
+            ci-artifacts/${{ inputs.suite }}/**
+            target/surefire-reports/**
+            target/reports/**
+            build/reports/tests/**
+          if-no-files-found: warn
+
+      - name: Stop infrastructure
+        if: always()
+        run: sh run-infra.sh down
