@@ -1,0 +1,43 @@
+name: validate-branch-update
+
+on:
+  push:
+    branches-ignore:
+      - main
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref_name }}
+  cancel-in-progress: true
+
+jobs:
+  checkstyle:
+    name: Checkstyle
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      IMAGE_NAME: testframework-runner:${{ github.sha }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build runner image
+        run: docker build -t "${IMAGE_NAME}" .
+
+      - name: Run Checkstyle
+        run: docker run --rm "${IMAGE_NAME}" mvn -B checkstyle:check
+
+  suites:
+    name: ${{ matrix.suite }}
+    strategy:
+      fail-fast: false
+      matrix:
+        suite:
+          - INTEGRATION
+          - API
+          - DB
+          - UI
+    uses: ./.github/workflows/common-setup.yml
+    with:
+      suite: ${{ matrix.suite }}
+      artifact_name: branch-${{ matrix.suite }}-artifacts

@@ -1,0 +1,38 @@
+name: main-publish
+
+on:
+  push:
+    branches:
+      - main
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref_name }}
+  cancel-in-progress: true
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      IMAGE_REPO: popchanskiy1998/testframework-runner
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Login to Docker Hub
+        run: echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login --username "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
+
+      - name: Build image
+        run: |
+          SHORT_SHA="$(printf '%s' "${GITHUB_SHA}" | cut -c1-7)"
+          docker build \
+            -t "${IMAGE_REPO}:sha-${SHORT_SHA}" \
+            -t "${IMAGE_REPO}:main" \
+            .
+
+      - name: Push image
+        run: |
+          SHORT_SHA="$(printf '%s' "${GITHUB_SHA}" | cut -c1-7)"
+          docker push "${IMAGE_REPO}:sha-${SHORT_SHA}"
+          docker push "${IMAGE_REPO}:main"
